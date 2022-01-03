@@ -1,0 +1,10 @@
+backend/node_modules
+backend/build
+.vscode
+.git
+npm-debug.log
+.DS_Store
+frontend/package-lock.json
+frontend/build
+frontend/log
+frontend/node_modules
