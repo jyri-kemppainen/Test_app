@@ -7,7 +7,7 @@ info:
     name: John Doe
     email: john.doe@dontuse.com
 servers:
-  - url: https://jkserver.azurewebsites.net/api
+  - url: https://jyri.northeurope.cloudapp.azure.com/api
     description: Production server
   - url: http://localhost:3001/api
     description: Test server running locally
@@ -35,28 +35,31 @@ paths:
       tags: 
         - places
       operationId: addPlace
-      parameters:
-      - name: placeName
-        in: path
+      security:
+        - bearerAuth: []
+      requestBody:
         required: true
-        schema: 
-          type: string
-          description: Name of the favorite place
-          example: "Radu's restaurant"
-      - name: latitude
-        in: path
-        required: true
-        schema: 
-          type: number
-          description: Latitude of the place
-          example: 62.001
-      - name: lognitude
-        in: path
-        required: true
-        schema: 
-          type: number
-          description: Lognitude of the place
-          example: 29.111
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                  description: Id of the logged in user - Id of the test user E is 38)
+                  example: 38 
+                name:
+                  type: string
+                  description: Name of the favorite place
+                  example: "Radu's restaurant"
+                lat:
+                  type: number
+                  description: Latitude of the place
+                  example: 62.001
+                lon:
+                  type: number
+                  description: Lognitude of the place
+                  example: 29.111
       responses:
         201:
           description: A new place has been succesfully added
