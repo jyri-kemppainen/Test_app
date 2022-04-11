@@ -1,5 +1,4 @@
 const maria = require("mariadb/callback");
-
 const hostName=process.env.DB_HOSTNAME;
 const dbUser=process.env.DB_USERNAME;
 const dbPassword=process.env.DB_PASSWORD;

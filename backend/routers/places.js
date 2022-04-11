@@ -1,7 +1,9 @@
-const db = require("../db.js");
-const jwt = require("jsonwebtoken");
-require("dotenv").config();
-const router = require("express").Router();
+import express from 'express';
+const router = express.Router();
+import db from "../mongodb.js";
+import jwt from "jsonwebtoken";
+// require("dotenv").config();
+
 
 const handleError = (err, response) => {
    response.status(404).json(err);
@@ -96,6 +98,7 @@ router.delete("/:id", (request, response) => {
                 response.json({ error: "no place with id " + id });
                 return;
             } else {
+                console.log(resultArr)
                 const decodedUserId = prcessToken(request);
                 if (decodedUserId != resultArr[0].UserID) {
                     handleError({ err: "Not Authorized" }, response);
@@ -108,7 +111,7 @@ router.delete("/:id", (request, response) => {
                         handleError(err, response);
                     },
                     (status) => {
-                        response.json(status);
+                         response.json(status);
                     }
                 );
             }
@@ -135,14 +138,14 @@ router.put("/:id", (request, response) => {
                     return;
                 }
                 // Callback hell (can be avoided with mariadb Promise API)
-                db.updatePlace(
+                updatePlace(
                     id,
                     request.body,
                     (err) => {
                         handleError(err, response);
                     },
                     (status) => {
-                        db.getPlace(
+                        getPlace(
                             id,
                             (err) => {
                                 handleError(err, response);
@@ -181,7 +184,7 @@ function getPlacesNearby(allPlaces, lat, lon, dist) {
     const R = 6371;
 
     // adding distance attribute to each place (GCD)
-    var placesWithDistances = allPlaces.map((place) => {
+    var placesWithDistances = db.allPlaces.map((place) => {
         var lat2 = (place.Latitude * Math.PI) / 180;
         var lonDiff = ((place.Longitude - lon) * Math.PI) / 180;
         var d =
@@ -197,4 +200,4 @@ function getPlacesNearby(allPlaces, lat, lon, dist) {
     return placesWithDistances.filter((item) => item.Distance <= dist);
 }
 
-module.exports = router;
+export default router;

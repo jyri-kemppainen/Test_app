@@ -1,6 +1,4 @@
-import  { MongoClient } from 'mongodb'
-import bcrypt from 'bcrypt'
-const saltRounds = 10;
+import { MongoClient } from 'mongodb'
 const dbHost = "mongodb://localhost:27017/"
 const dbName = "placesDb"
 const placesCollection = "Places"

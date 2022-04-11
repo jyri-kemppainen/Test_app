@@ -1,8 +1,9 @@
-const db = require("../db.js");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-require("dotenv").config();
-const router = require("express").Router();
+import express from 'express';
+const router = express.Router();import db from "../mongodb.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+// require("dotenv").config();
+
 
 const handleError = (err, response, code = 404) => {
     response.status(code).json(err);
@@ -40,4 +41,4 @@ router.post("/", async (request, response) => {
     );
 });
 
-module.exports = router;
+export default router;

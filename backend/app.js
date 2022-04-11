@@ -1,5 +1,5 @@
-const server = require("./index");
-require('dotenv').config();
+import server from "./index.js";
+// require('dotenv').config();
 
 const port = process.env.PORT; 
 server.listen(port, (err) => {

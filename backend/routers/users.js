@@ -1,7 +1,9 @@
-const db = require("../db.js");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const router = require("express").Router();
+import express from 'express';
+const router = express.Router();
+import db from "../mongodb.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+
 
 const handleError = (err, response) => {
     response.status(404).json(err);
@@ -48,6 +50,7 @@ router.post("/", async (request, response) => {
                     handleError(err, response);
                 },
                 (resultArray) => {
+                    console.log(resultArray)
                     const token = jwt.sign(
                         {
                             username: resultArray[0]["Name"],
@@ -64,4 +67,4 @@ router.post("/", async (request, response) => {
     );
 });
 
-module.exports = router;
+export default router;
