@@ -98,7 +98,6 @@ router.delete("/:id", (request, response) => {
                 response.json({ error: "no place with id " + id });
                 return;
             } else {
-                console.log(resultArr)
                 const decodedUserId = prcessToken(request);
                 if (decodedUserId != resultArr[0].UserID) {
                     handleError({ err: "Not Authorized" }, response);

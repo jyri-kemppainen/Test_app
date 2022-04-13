@@ -1,18 +1,17 @@
 import { MongoClient, ObjectId } from 'mongodb';
-// import { hash } from 'bcrypt';
-// const saltRounds = 10;
 const dbHost = "localhost:27017"
 const dbName = "placesDb"
 const placesCollection = "Places"
-const userCollection = "Users"
+const usersCollection = "Users"
 const dbUser = "testi"
 const dbPassword = "Salasana1"
 const dbConnString = `mongodb://${dbUser}:${dbPassword}@${dbHost}`
 const dbServer = new MongoClient(dbConnString)
 
-const createDbConn = async () => {
+const createDbConn = async (collection) => {
     await dbServer.connect()
-    return dbServer.db(dbName)
+    const db = dbServer.db(dbName)
+    return db.collection(collection)
 }
 
 const sendQuery = async (query, onError, onSuccess, toArray = false) => {
@@ -33,58 +32,47 @@ const sendQuery = async (query, onError, onSuccess, toArray = false) => {
         onSuccess(res)
     } catch (err) {
         onError(err)
-    } /* finally {
-        dbServer.close()
-    }*/
+    } 
 }
 
 const getAllPlaces = async (onError, onSuccess) => {
-    const db = await createDbConn()
-    const placesCol = db.collection(placesCollection)
+    const placesCol = await createDbConn(placesCollection)
     return sendQuery(placesCol.aggregate([{
         $lookup: {
             from: "Users",
             localField: "UserID",
             foreignField: "_id",
             as: "tulos"
-        }},
-        { $project: {
+        }},{
+        $project: {
             ID: { $toString: "$_id" },
             Name: "$Name",
             UserName: "$tulos.Name",
             Latitude: "$Latitude",
             Longitude: "$Longitude",
-            UserID: { $toString: "$UserID" }
-        }},
-        { $project: {
-            "_id": 0,
-        }},
-        { $unwind : "$UserName" }
+            UserID: { $toString: "$UserID" },
+            "_id": 0
+        }},{
+        $unwind : "$UserName"
+        }
     ]), onError, onSuccess, true)
 }
 // sendQuery(`SELECT Places.*, Users.Name AS UserName FROM Places JOIN Users ON Users.ID = Places.UserID`, onError, onSuccess);
 
 const getAllUsers = async (onError, onSuccess) => {
-    const db = await createDbConn()
-    const usersCol = db.collection(userCollection)
-    return sendQuery( usersCol.aggregate([{
+    return sendQuery((await createDbConn(usersCollection)).aggregate([{
             $project: {
                 ID: { $toString: "$_id" },
                 Name: "$Name",
-                Password: "$Password"
-            }},{
-            $project: {
-                "_id": 0
+                Password: "$Password",
+                "_id": 0                
             }}
     ]), onError, onSuccess, true)
 }
 // sendQuery(`SELECT * FROM Users`, onError, onSuccess);
 
 const addUser = async ({ name, password }, onError, onSuccess) => {
-    const db = await createDbConn()
-    const usersCol = db.collection(userCollection)
-    //    Password = await hash(Password, saltRounds);
-    return sendQuery( usersCol.insertOne({
+    return sendQuery((await createDbConn(usersCollection)).insertOne({
         Name: name,
         Password: password
     }), onError, onSuccess)
@@ -92,9 +80,7 @@ const addUser = async ({ name, password }, onError, onSuccess) => {
 // sendQuery(`INSERT INTO Users (Name, Password) VALUES ('${name}', '${password}')`, onError, onSuccess, true);
 
 const addPlace = async ({ name, userId, lat, lon }, onError, onSuccess ) => {
-    const db = await createDbConn()
-    const placesCol = db.collection(placesCollection)
-    return sendQuery(placesCol.insertOne({
+    return sendQuery((await createDbConn(placesCollection)).insertOne({
         Name: name,
         UserID: new ObjectId(userId),
         Latitude: lat,
@@ -104,9 +90,7 @@ const addPlace = async ({ name, userId, lat, lon }, onError, onSuccess ) => {
 // sendQuery(`INSERT INTO Places (Name, UserID, Latitude, Longitude) VALUES ('${name}',${userId},${lat},${lon})`, onError, onSuccess, true);
 
 const getPlace = async (id, onError, onSuccess) => {
-    const db = await createDbConn()
-    const placesCol = db.collection(placesCollection)
-    return sendQuery(placesCol.aggregate([{
+    return sendQuery((await createDbConn(placesCollection)).aggregate([{
         $lookup: {
             from: "Users",
             localField: "UserID",
@@ -122,48 +106,38 @@ const getPlace = async (id, onError, onSuccess) => {
             UserName: "$result.Name",
             Latitude: "$Latitude",
             Longitude: "$Longitude",
-            UserID: { $toString: "$UserID" }
-        }},
-        { $project: {
-            "_id": 0,
-        }},
-        { $unwind : "$UserName" }
+            UserID: { $toString: "$UserID" },
+            "_id": 0
+        }},{
+        $unwind : "$UserName" }
     ]), onError, onSuccess, true)
 };
 // sendQuery(`SELECT Places.*, Users.Name AS UserName FROM Places JOIN Users ON Users.ID = Places.UserID WHERE Places.ID =${id}`, onError, onSuccess);
 
 const deletePlace = async (id, onError, onSuccess) => {
-    const db = await createDbConn()
-    const placesCol = db.collection(placesCollection)
-    return sendQuery(placesCol.deleteOne({
+    return sendQuery((await createDbConn(placesCollection)).deleteOne({
         _id: new ObjectId(id)
     }), onError, onSuccess) 
 }
 // sendQuery(`DELETE FROM Places WHERE ID=${id}`, onError, onSuccess, true);
 
 const getUser = async (id, onError, onSuccess) => {
-    const db = await createDbConn()
-    const usersCol = db.collection(userCollection)
-    return sendQuery( usersCol.aggregate([{
+    return sendQuery((await createDbConn(usersCollection)).aggregate([{
             $match: {
                 _id: new ObjectId(id)
             }},{
             $project: {
                 ID: { $toString: "$_id" },
                 Name: "$Name",
-                Password: "$Password"
-            }},{
-            $project: {
-                "_id": 0
+                Password: "$Password",
+                "_id": 0             
             }}
         ]), onError, onSuccess, true)
 }
 // sendQuery(`SELECT * FROM Users WHERE ID=${id}`, onError, onSuccess);
 
 const getUserByName = async (name, onError, onSuccess) => {
-    const db = await createDbConn()
-    const usersCol = db.collection(userCollection)
-    return sendQuery( usersCol.aggregate([{
+    return sendQuery((await createDbConn(usersCollection)).aggregate([{
             $match: {
                 Name: name
             }},{
