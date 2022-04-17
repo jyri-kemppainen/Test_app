@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId } from 'mongodb';
+const { MongoClient, ObjectId } = require('mongodb')
 const dbHost = "localhost:27017"
 const dbName = "placesDb"
 const placesCollection = "Places"
@@ -28,7 +28,7 @@ const sendQuery = async (query, onError, onSuccess, toArray = false) => {
             else
                 res = {
                     "deletedCount": result.deletedCount.toString(),
-                }                    
+                }              
         onSuccess(res)
     } catch (err) {
         onError(err)
@@ -59,6 +59,102 @@ const getAllPlaces = async (onError, onSuccess) => {
 }
 // sendQuery(`SELECT Places.*, Users.Name AS UserName FROM Places JOIN Users ON Users.ID = Places.UserID`, onError, onSuccess);
 
+const getNearbyPlaces = async (onError, onSuccess, lat, lon, dist) => {
+    const placesCol = await createDbConn(placesCollection)
+    const latNum = parseFloat(lat)
+    const lonNum = parseFloat(lon)
+    const distNum = parseFloat(dist)
+    return sendQuery(placesCol.aggregate([{
+        $lookup: {
+            from: "Users",
+            localField: "UserID",
+            foreignField: "_id",
+            as: "tulos"
+        }},{
+        $project: {
+            ID: { $toString: "$_id" },
+            Name: "$Name",
+            UserName: "$tulos.Name",
+            Latitude: "$Latitude",
+            Longitude: "$Longitude",
+            UserID: { $toString: "$UserID" },
+             "_id": 0
+        }},{
+        $addFields : {
+            distance: {
+                $multiply: [
+                    { $acos:
+                        { $add: [
+                            { $multiply: [
+                                { $sin: {$degreesToRadians: latNum}},
+                                { $sin: {$degreesToRadians: "$Latitude"}}
+                            ]},
+                            {$multiply:[
+                                { $cos: {$degreesToRadians: latNum}},
+                                { $cos: {$degreesToRadians: "$Latitude"}},
+                                { $cos: {$degreesToRadians: {$subtract: [lonNum, "$Longitude"]}}}
+                            ]}
+                        ]}
+                    },
+                    6371
+                ]}
+        }},{
+        $match: {
+            distance: {"$lt": distNum} 
+        }},{
+        $unwind : "$UserName"
+        }
+    ]), onError, onSuccess, true)
+}
+// `SELECT Places.*, Users.Name AS UserName, 
+//      (SELECT acos(sin(radians(${lat}))*sin(radians(Latitude))+
+//         cos(radians(${lat}))*cos(radians(Latitude))*cos(radians(${lon}-Longitude)))*
+//         6371) AS distance
+//  FROM Places JOIN Users ON Users.ID = Places.UserID
+//  HAVING distance < ${dist}`
+
+
+const getPlacesWithinBounds = async (onError, onSuccess, north, south, east, west) => {
+    const placesCol = await createDbConn(placesCollection)
+    const northNum = parseFloat(north)
+    const southNum = parseFloat(south)
+    const eastNum = parseFloat(east)
+    const westNum = parseFloat(west)
+    return sendQuery(placesCol.aggregate([{
+        $lookup: {
+            from: "Users",
+            localField: "UserID",
+            foreignField: "_id",
+            as: "tulos"
+        }},{
+        $project: {
+            ID: { $toString: "$_id" },
+            Name: "$Name",
+            UserName: "$tulos.Name",
+            Latitude: "$Latitude",
+            Longitude: "$Longitude",
+            UserID: { $toString: "$UserID" },
+            "_id": 0
+        }},{
+        $match: {
+            Latitude: {"$gte": southNum, "$lte": northNum},
+            Longitude: {"$gte": westNum, "$lte": eastNum} 
+        }},{
+        $unwind : "$UserName"
+        }
+    ]), onError, onSuccess, true)
+};
+/*
+    `SELECT Places.*, Users.Name AS UserName 
+        FROM Places JOIN Users
+        ON Users.ID = Places.UserID
+        WHERE Latitude BETWEEN ${south} AND ${north} AND
+        Longitude BETWEEN ${west} AND ${east}
+        ORDER BY RAND() LIMIT 100`,
+        onError,
+        onSuccess
+    );
+*/
 const getAllUsers = async (onError, onSuccess) => {
     return sendQuery((await createDbConn(usersCollection)).aggregate([{
             $project: {
@@ -153,7 +249,7 @@ const getUserByName = async (name, onError, onSuccess) => {
 }
 //sendQuery(`SELECT * FROM Users WHERE Name='${name}'`, onError, onSuccess);
 
-export default {
+module.exports = {
     addUser,
     getAllUsers,
     getAllPlaces,
@@ -161,5 +257,7 @@ export default {
     getUser,
     addPlace,
     getPlace,
-    deletePlace
+    deletePlace,
+    getNearbyPlaces,
+    getPlacesWithinBounds
 }

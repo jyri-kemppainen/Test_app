@@ -10,7 +10,7 @@ const AddPlace =(props)=>{
     
     const addPlace=()=>{
         props.setIsLoading(true)
-        const url = process.env.REACT_APP_URL
+        const url = process.env.PUBLIC_URL
 
         setTimeout(()=>
             fetch(`${url}/api/places`,{

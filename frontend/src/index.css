@@ -62,6 +62,10 @@ body{
   flex-direction: column-reverse;
 }
 
+#placesResult{
+  width:400px;
+}
+
 @media screen and (min-width:640px) {
   #content{
     flex-direction: row;
@@ -84,6 +88,7 @@ body{
   text-align:center;
   border-radius:50%;
   font-size: 20px;
+  border: 2px solid white;
 }
 
 .authWindow{

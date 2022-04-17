@@ -7,7 +7,7 @@ const PlacesList = ({loggedInUser,places,itemClick,
     
     const deletePlace=(id) => {
         setIsLoading(true)
-        const url = process.env.REACT_APP_URL
+        const url = process.env.PUBLIC_URL
                 
         setTimeout(()=>
             fetch(`${url}/api/places/${id}`,{

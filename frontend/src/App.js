@@ -9,30 +9,31 @@ const App = () => {
     const [isLoading,setIsLoading]=useState(false);
     const [places, setPlaces] = useState([]);
     const [center, setCenter] = useState([62.6,29.77])
+    const [bounds, setBounds] = useState([63,62,30,29]) // N, S, E, W
     const [user,setUser]=useState(null)
     const [auth,setAuth]=useState(false)
-    const url = process.env.REACT_APP_URL;
+    const url = process.env.PUBLIC_URL
 
     //will be incremented by 1, when it changes it retriggers getAllPlaces
     const [rerender,setRerender]=useState(0);
 
     const getAllPlaces = () => {
         setIsLoading(true);
-
-        setTimeout(()=>
-             fetch(`${url}/api/places`)
-            .then((response) => {
-                return response.json(); // returns another promise
-            })
-            .then((placesData) => {
-                setPlaces(placesData);
-                setIsLoading(false);
-            })
-            .catch((err) => {
-                alert("Something went bad");
-                console.log("Error: ", err);
-                setIsLoading(false);
-            }),1000); // artificially slowing down by 1 second
+        
+        //fetch(`${url}/api/places/nearby/${center[0]}/${center[1]}/5`)
+        fetch(`${url}/api/places/boundingBox/${bounds[0]}/${bounds[1]}/${bounds[2]}/${bounds[3]}`)
+        .then((response) => {
+            return response.json(); // returns another promise
+        })
+        .then((placesData) => {
+            setPlaces(placesData);
+            setIsLoading(false);
+        })
+        .catch((err) => {
+            alert("Something went bad");
+            console.log("Error: ", err);
+            setIsLoading(false);
+        });
     };
 
     const doAutoLogin = () => {
@@ -42,9 +43,7 @@ const App = () => {
         }
     }
 
-    useEffect(()=>getAllPlaces(),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [rerender]);
+    useEffect(()=>getAllPlaces(),[rerender]);
     useEffect(doAutoLogin,[]);
 
     const listItemClick=(id)=>{
@@ -77,7 +76,10 @@ const App = () => {
                     loggedInUser={user} places={places}
                     setIsLoading={setIsLoading}
                     setRerender={setRerender}/>
-                <Map center={center} places={places}/>
+                <Map center={center} places={places}
+                    setCenter={setCenter}
+                    setRerender={setRerender}
+                    setBounds={setBounds}/>
             </div>
             
             {auth && <Login 

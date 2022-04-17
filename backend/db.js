@@ -1,8 +1,11 @@
 const maria = require("mariadb/callback");
+require('dotenv').config();
+
 const hostName=process.env.DB_HOSTNAME;
 const dbUser=process.env.DB_USERNAME;
 const dbPassword=process.env.DB_PASSWORD;
 const dbName = process.env.DB_NAME;
+
 
 const sendQuery = (sql, onError, onSuccess, doCommit = false) => {
     const con = maria.createConnection({
@@ -45,6 +48,39 @@ const getAllPlaces = (onError, onSuccess) => {
     );
 };
 
+const getNearbyPlaces = (onError, onSuccess, lat, lon, dist) => {
+    sendQuery(
+        `SELECT Places.*, Users.Name AS UserName, 
+            (SELECT acos(
+                sin(radians(${lat}))*
+                sin(radians(Latitude))+
+                cos(radians(${lat}))*
+                cos(radians(Latitude))*
+                cos(radians(${lon}-Longitude))
+            )*6371) AS distance 
+        FROM Places JOIN Users
+        ON Users.ID = Places.UserID
+        HAVING distance < ${dist}`,
+        onError,
+        onSuccess
+    );
+};
+
+const getPlacesWithinBounds = (onError, onSuccess, north, south, east, west) => {
+    sendQuery(
+        `SELECT Places.*, Users.Name AS UserName 
+        FROM Places JOIN Users
+        ON Users.ID = Places.UserID
+        WHERE Latitude BETWEEN ${south} AND ${north} AND
+        Longitude BETWEEN ${west} AND ${east}
+        ORDER BY RAND() LIMIT 100`,
+        onError,
+        onSuccess
+    );
+};
+
+
+
 //Get a specific place, given its ID
 const getPlace = (id, onError, onSuccess) => {
     sendQuery(
@@ -70,12 +106,12 @@ const getPlacesOfUser = (userId, onError, onSuccess) => {
     );
 };
 
-const addPlace = ({ name, userId, lat, lon }, onError, onSuccess) => {
+const addPlace = ({ Name, UserId, Latitude, Longitude }, onError, onSuccess) => {
     sendQuery(
         `INSERT INTO Places 
         (Name, UserID, Latitude, Longitude)
         VALUES
-        ('${name}',${userId},${lat},${lon})`,
+        ('${Name}',${UserId},${Latitude},${Longitude})`,
         onError,
         onSuccess,
         true
@@ -142,4 +178,6 @@ module.exports = {
     getUser,
     addUser,
     getUserByName,
+    getNearbyPlaces,
+    getPlacesWithinBounds
 };

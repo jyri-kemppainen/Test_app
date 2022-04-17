@@ -1,36 +1,74 @@
-import express from 'express';
-const router = express.Router();
-import db from "../mongodb.js";
-import jwt from "jsonwebtoken";
-// require("dotenv").config();
+// const db = require("../db.js");
+const db = require("../mongodb.js");
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
+const router = require("express").Router();
+const {Parser} = require('json2csv');
+const json2csv=new Parser();
 
-
-const handleError = (err, response) => {
-   response.status(404).json(err);
+const handleError = (err, response, code="404") => {
+    response.status(code).json(err);
 };
 
-const prcessToken = (request) => {
+const processToken = (request) => {
     const auth = request.get("authorization");
     if (auth && auth.toLowerCase().startsWith("bearer ")) {
         const token = auth.substring(7);
-        const decodedToken = jwt.verify(token, process.env.SECRET);
         
-        if (!token || !decodedToken.id) {
-            return false;
+        let decodedToken=null;
+        try{
+            decodedToken = jwt.verify(token, process.env.SECRET);
+        }catch(err){
+            return {ok:false,info:"incorrect token"};
         }
-        return decodedToken.id;
+        
+        if (!token) {
+            return {ok:false,info:"missing token"};
+        }
+        if (!decodedToken.id) {
+            return {ok:false,info:"incorrect token"};
+        }
+        return {ok:true,info:decodedToken.id};
     } else {
-        return false;
+        return {ok:false,info:"missing token"};
     }
 };
 
+/**
+ * @swagger
+ * /api/places:
+ *   get:
+ *     summary: Returns a list of all Places
+ *     tags: [Places]
+ *     operationId: getPlaces
+ *     responses:
+ *       '200':
+ *         description: Successfully returned a list of places
+ *         content:
+ *           application/json:
+ *             schema:
+ *               description: List of places
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Place'
+ */ 
 router.get("/", (request, response) => {
     db.getAllPlaces(
         (err) => {
             handleError(err, response);
         },
         (places) => {
-            response.json(places);
+            switch(request.headers.accept){
+                case "application/json":
+                    response.json(places);
+                    break;
+                case "text/csv":
+                    response.status(200).send(json2csv.parse(places));
+                    break;
+                default:
+                    response.json(places);
+                    break;
+            }
         }
     );
 });
@@ -38,26 +76,78 @@ router.get("/", (request, response) => {
 // not used in web app
 router.get("/:id", (request, response) => {
     const id = request.params.id;
+    if(!Number.isInteger(Number(id))){
+        response.status(400);
+        response.json({ error: "invalid place id " + id });
+        return;
+    }
     db.getPlace(
         id,
         (err) => {
             handleError(err, response);
         },
-        (place) => {
-            if (place.length == 0) {
+        (places) => {
+            if (places.length == 0) {
                 response.status(404);
                 response.json({ error: "no place with id " + id });
             } else {
-                response.json(place);
+                response.json(places[0]);
             }
         }
     );
 });
 
+/**
+ * @swagger
+ * /api/places:
+ *   post:
+ *     summary: Create a new Place
+ *     tags: [Places]
+ *     operationId: addPlace
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PlaceToBeAdded'
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: The place was created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Place'
+ *       '404':
+ *         description: Server Error
+ */
 router.post("/", (request, response) => {
-    const decodedUserId = prcessToken(request);
-    if (decodedUserId != request.body.userId) {
-        handleError({ err: "Not Authorized" }, response);
+    const res = processToken(request);
+    if(!res.ok){
+        switch(res.info){
+            case "missing token":
+                handleError({ err: "Not Authorized" }, response,401);
+                break;
+            case "incorrect token":
+                handleError({ err: "Not Authorized" }, response,403);
+                break;
+        }
+        return;
+    }
+
+    // To-Do: remove this when 
+    if(!request.body.Latitude){
+        request.body.Latitude=request.body.lat;
+        request.body.Longitude=request.body.lon;
+        request.body.Name=request.body.name;
+        request.body.UserId=request.body.userId;
+    }
+
+    // things are ok...
+    const decodedUserId=res.info;
+    if (decodedUserId != request.body.UserId) {
+        handleError({ err: "Not Authorized" }, response, 403);
         return;
     }
 
@@ -72,12 +162,12 @@ router.post("/", (request, response) => {
                 (err) => {
                     handleError(err, response);
                 },
-                (place) => {
-                    if (place.length == 0) {
+                (places) => {
+                    if (places.length == 0) {
                         response.status(404);
                         response.json({ error: "no place with id " + id });
                     } else {
-                        response.json(place);
+                        response.json(places[0]);
                     }
                 }
             );
@@ -86,6 +176,20 @@ router.post("/", (request, response) => {
 });
 
 router.delete("/:id", (request, response) => {
+
+    const res = processToken(request);
+    if(!res.ok){
+        switch(res.info){
+            case "missing token":
+                handleError({ err: "Not Authorized" }, response,401);
+                break;
+            case "incorrect token":
+                handleError({ err: "Not Authorized" }, response,403);
+                break;
+        }
+        return;
+    }
+
     const id = request.params.id;
     db.getPlace(
         id,
@@ -98,9 +202,9 @@ router.delete("/:id", (request, response) => {
                 response.json({ error: "no place with id " + id });
                 return;
             } else {
-                const decodedUserId = prcessToken(request);
+                const decodedUserId = res.info;
                 if (decodedUserId != resultArr[0].UserID) {
-                    handleError({ err: "Not Authorized" }, response);
+                    handleError({ err: "Not Authorized" }, response,403);
                     return;
                 }
                 // Callback hell (can be avoided with mariadb Promise API)
@@ -110,7 +214,7 @@ router.delete("/:id", (request, response) => {
                         handleError(err, response);
                     },
                     (status) => {
-                         response.json(status);
+                        response.json({...status,...resultArr[0]});
                     }
                 );
             }
@@ -119,6 +223,19 @@ router.delete("/:id", (request, response) => {
 });
 
 router.put("/:id", (request, response) => {
+    const res = processToken(request);
+    if(!res.ok){
+        switch(res.info){
+            case "missing token":
+                handleError({ err: "Not Authorized" }, response,401);
+                break;
+            case "incorrect token":
+                handleError({ err: "Not Authorized" }, response,403);
+                break;
+        }
+        return;
+    }
+
     const id = request.params.id;
     db.getPlace(
         id,
@@ -131,20 +248,20 @@ router.put("/:id", (request, response) => {
                 response.json({ error: "no place with id " + id });
                 return;
             } else {
-                const decodedUserId = prcessToken(request);
+                const decodedUserId = res.info;
                 if (decodedUserId != resultArr[0].UserID) {
-                    handleError({ err: "Not Authorized" }, response);
+                    handleError({ err: "Not Authorized" }, response,403);
                     return;
                 }
                 // Callback hell (can be avoided with mariadb Promise API)
-                updatePlace(
+                db.updatePlace(
                     id,
                     request.body,
                     (err) => {
                         handleError(err, response);
                     },
                     (status) => {
-                        getPlace(
+                        db.getPlace(
                             id,
                             (err) => {
                                 handleError(err, response);
@@ -160,19 +277,38 @@ router.put("/:id", (request, response) => {
     );
 });
 
-// not used in web app
+// used in updated web app!
 router.get("/nearby/:lat/:lon/:dist", (request, response) => {
     const lat = request.params.lat;
     const lon = request.params.lon;
     const dist = request.params.dist; // distance in km
 
-    db.getAllPlaces(
+    db.getNearbyPlaces(
         (err) => {
             handleError(err, response);
         },
         (places) => {
-            response.json(getPlacesNearby(places, lat, lon, dist));
-        }
+            response.json(places);
+        },
+        lat,lon,dist
+    );
+});
+
+// used in updated web app!
+router.get("/boundingBox/:north/:south/:east/:west", (request, response) => {
+    const north = request.params.north;
+    const south = request.params.south;
+    const east = request.params.east; 
+    const west = request.params.west; 
+
+    db.getPlacesWithinBounds(
+        (err) => {
+            handleError(err, response);
+        },
+        (places) => {
+            response.json(places);
+        },
+        north,south,east,west
     );
 });
 
@@ -183,7 +319,7 @@ function getPlacesNearby(allPlaces, lat, lon, dist) {
     const R = 6371;
 
     // adding distance attribute to each place (GCD)
-    var placesWithDistances = db.allPlaces.map((place) => {
+    var placesWithDistances = allPlaces.map((place) => {
         var lat2 = (place.Latitude * Math.PI) / 180;
         var lonDiff = ((place.Longitude - lon) * Math.PI) / 180;
         var d =
@@ -199,4 +335,4 @@ function getPlacesNearby(allPlaces, lat, lon, dist) {
     return placesWithDistances.filter((item) => item.Distance <= dist);
 }
 
-export default router;
+module.exports = router;

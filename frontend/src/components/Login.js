@@ -3,7 +3,7 @@ import { useState } from "react";
 const Login = (props) => {
     const [name,setName]=useState("")
     const [password,setPassword]=useState("")
-    const url = process.env.REACT_APP_URL
+    const url = process.env.PUBLIC_URL
 
     const doLogin=()=>{
         if(name==="" || password===""){
@@ -22,7 +22,6 @@ const Login = (props) => {
             })
             .then(response => {
                 if(!response.ok){
-                    // eslint-disable-next-line
                     throw("Unauthorized");
                 }
                 props.setIsLoading(false)
@@ -59,7 +58,6 @@ const Login = (props) => {
             })
             .then(response => {
                 if(!response.ok){
-                    // eslint-disable-next-line
                     throw("Unauthorized");
                 }
                 props.setIsLoading(false)

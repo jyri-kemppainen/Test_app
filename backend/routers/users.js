@@ -1,12 +1,12 @@
-import express from 'express';
-const router = express.Router();
-import db from "../mongodb.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+//AnotherMe:password,Me:MyPass,Radu:password,Jyri:1234,Petri:p3tri
+// const db = require("../db.js");
+const db = require("../mongodb.js");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const router = require("express").Router();
 
-
-const handleError = (err, response) => {
-    response.status(404).json(err);
+const handleError = (err, response, code=404) => {
+    response.status(code).json(err);
 };
 
 // not used in web app
@@ -24,18 +24,32 @@ router.get("/", (request, response) => {
 // not used in web app
 router.get("/:id", (request, response) => {
     const id = request.params.id;
+    if(!Number.isInteger(Number(id))){
+        response.status(400);
+        response.json({ error: "invalid user id " + id });
+        return;
+    }
     db.getUser(
         id,
         (err) => {
             handleError(err, response);
         },
-        (user) => {
-            response.json(user);
+        (users) => {
+            if (users.length == 0) {
+                response.status(404);
+                response.json({ error: "no user with id " + id });
+            } else {
+                response.json(users[0]);
+            }
         }
     );
 });
 
 router.post("/", async (request, response) => {
+    if(!request.body.password || !request.body.name){
+        handleError({ err: "Missing user or password" }, response,400);
+        return;
+    }
     request.body.password = await bcrypt.hash(request.body.password, 10);
 
     db.addUser(
@@ -50,7 +64,6 @@ router.post("/", async (request, response) => {
                     handleError(err, response);
                 },
                 (resultArray) => {
-                    console.log(resultArray)
                     const token = jwt.sign(
                         {
                             username: resultArray[0]["Name"],
@@ -67,4 +80,4 @@ router.post("/", async (request, response) => {
     );
 });
 
-export default router;
+module.exports = router;
