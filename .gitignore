@@ -1,10 +1,11 @@
 backend/node_modules
-backend/build
+backend/backend_backup
+backend/backend_backup.zip
 .vscode
 .git
-npm-debug.log
-.DS_Store
 frontend/package-lock.json
 frontend/build
 frontend/log
 frontend/node_modules
+frontend/prontend_backup
+frontend/prontend_backup.zip
