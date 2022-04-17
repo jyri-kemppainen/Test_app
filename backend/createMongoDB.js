@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb'
+const { MongoClient } = require('mongodb')
 const dbHost = "mongodb://localhost:27017/"
 const dbName = "placesDb"
 const placesCollection = "Places"
