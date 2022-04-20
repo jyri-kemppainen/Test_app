@@ -1,12 +1,17 @@
 const { MongoClient, ObjectId } = require('mongodb')
-const dbHost = "localhost:27017"
 const dbName = "placesDb"
 const placesCollection = "Places"
 const usersCollection = "Users"
 const dbUser = "testi"
 const dbPassword = "Salasana1"
+// MongoDB-local
+const dbHost = "localhost:27017"
 const dbConnString = `mongodb://${dbUser}:${dbPassword}@${dbHost}`
+// MongoDB-Atlas
+//const dbAtlasHost = `cluster0.ahrwa.mongodb.net/`
+//const dbConnString = `mongodb+srv://${dbUser}:${dbPassword}@${dbAtlasHost}`
 const dbServer = new MongoClient(dbConnString)
+
 
 const createDbConn = async (collection) => {
     await dbServer.connect()
