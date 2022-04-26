@@ -6,7 +6,6 @@ const dbUser=process.env.DB_USERNAME;
 const dbPassword=process.env.DB_PASSWORD;
 const dbName = process.env.DB_NAME;
 
-
 const sendQuery = (sql, onError, onSuccess, doCommit = false) => {
     const con = maria.createConnection({
         host: hostName,

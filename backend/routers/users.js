@@ -1,6 +1,6 @@
 //AnotherMe:password,Me:MyPass,Radu:password,Jyri:1234,Petri:p3tri
-// const db = require("../db.js");
-const db = require("../mongodb.js");
+const db = require("../db.js");
+// const db = require("../mongodb.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const router = require("express").Router();
