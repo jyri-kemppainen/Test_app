@@ -27,10 +27,9 @@ const sendQuery = async (query, onError, onSuccess, toArray = false) => {
     let res
     try {
         const result = await query
-        if( toArray ) {
+        if( toArray )
             res = await result.toArray()
-            console.log(res)
-        } else
+        else
             res = result
         onSuccess(res)
     } catch (err) {
@@ -39,7 +38,7 @@ const sendQuery = async (query, onError, onSuccess, toArray = false) => {
 }
 
 const getAllUsers = async (onError, onSuccess) => {
-    return sendQuery ((await createDbConn(usersCollection)).aggregate([{
+    return sendQuery((await createDbConn(usersCollection)).aggregate([{
             $project: {
                 ID: {$toString: "$_id"},
                 Name: "$Name",
@@ -69,18 +68,19 @@ const getPlacesWithinBounds = async (onError, onSuccess, north, south, east, wes
             UserName: "$result.Name",
             Latitude: "$Latitude",
             Longitude: "$Longitude",
-            UserID: {$toString: "$UserID"},
+            UserID: {toString:"$UserID"},
             "_id": 0
-        }},{
+        }},/*{
         $match: {
-            Latitude:{ "$gte": southNum, "$lte": northNum },
-            Longitude: { "$gte": westNum, "$lte": eastNum }
+            Latitude: {"$gte": southNum, "$lte": northNum},
+            Longitude: {"$gte": westNum, "$lte": eastNum} 
         }},{
-        $sample:{ size: 100 }
-        },{
-        $unwind: "$UserName"
+        $sample: {
+            size: 100
+        }},{    
+        $unwind : "$UserName"
         }
-    ]), onError, onSuccess, true)
+*/    ]), onError, onSuccess, true)
 }
 
 /*`SELECT Places.*, Users.Name AS UserName 
@@ -94,4 +94,4 @@ ORDER BY RAND() LIMIT 100`,
 module.exports = {
     getAllUsers,
     getPlacesWithinBounds
-}
+};

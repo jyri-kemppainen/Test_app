@@ -1,5 +1,5 @@
-const db = require("../db.js");
-// const db = require("../mongodb.js");
+// const db = require("../db.js");
+const db = require("../mongodb.js");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const router = require("express").Router();
@@ -295,6 +295,7 @@ router.get("/nearby/:lat/:lon/:dist", (request, response) => {
 });
 
 // used in updated web app!
+// e.g. http://localhost:3000/api/places/boundingbox/63/60/30/29
 router.get("/boundingBox/:north/:south/:east/:west", (request, response) => {
     const north = request.params.north;
     const south = request.params.south;
